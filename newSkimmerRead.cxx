@@ -47,9 +47,12 @@ int main( int argc, char ** argv){
 	TH1D * hpThdiff_exRa = new TH1D("hpThdiff_exRa","#theta_{p} Difference between Calculation and exRa", 2500,-0.05,0.05);
 
 	//	Look at how much ideal beam vs corrections matter: Pmiss, W
+	TH1D * hPmx_nudge 	= new TH1D("hPmx_nudge",	"p_{miss,x}",	3000,-0.01,0.02);
+	TH1D * hPmy_nudge 	= new TH1D("hPmy_nudge",	"p_{miss,y}",	500,-0.05,0.05);
+	TH1D * hPmz_nudge 	= new TH1D("hPmz_nudge",	"p_{miss,z}",	600,-0.1,0.2);
 	TH1D * hPmx_id 	= new TH1D("hPmx_id",	"p_{miss,x}",	300,-0.01,0.02);
 	TH1D * hPmy_id 	= new TH1D("hPmy_id",	"p_{miss,y}",	500,-0.05,0.05);
-	TH1D * hPmz_id 	= new TH1D("hPmz_id",	"p_{miss,z}",	300,-0.01,0.02);
+	TH1D * hPmz_id 	= new TH1D("hPmz_id",	"p_{miss,z}",	3000,-0.1,0.2);
 	TH1D * hEm_id  	= new TH1D("hEm_id",	"E_{miss}",	300,-0.04,0.01);
 	TH1D * hPmx_ra 	= new TH1D("hPmx_ra",	"p_{miss,x}",	300,-0.01,0.02);
 	TH1D * hPmy_ra 	= new TH1D("hPmy_ra",	"p_{miss,y}",	500,-0.05,0.05);
@@ -474,6 +477,22 @@ int main( int argc, char ** argv){
 			double E1_an_id_nudge=mP*(  1./(tan(calc_e_th2/2.     )) * 1./(tan(calc_p_th2    )) - 1. );
 			hE1_an_id_nudge-> Fill( E1_an_id_nudge   - sk_kin_Ebeam);
 			
+			// let's calculate Pmiss components with this nudge
+			double p3_exp_nudge   = (E1_an_id_nudge*mP) / ( mP + E1_an_id_nudge*(1-cos(calc_e_th2))  );
+			double p4_exp_nudge   = pow( pow((E1_an_id_nudge + mP - p3_exp_nudge),2) - pow(mP,2) , 0.5);
+			hP3_nudge->Fill( p3_exp_nudge - sk_e_ext_mom );
+			hP4_nudge->Fill( p4_exp_nudge - sk_p_ext_mom );
+			
+			sk_e_phi *= M_PI/180.;
+			sk_p_phi *= M_PI/180.;
+			double nudge_Pmx = p4_exp_nudge*sin(calc_p_th2)*cos(sk_p_phi) + p3_exp_nudge*sin(calc_e_th2)*cos(sk_e_phi);
+			double nudge_Pmy = p4_exp_nudge*sin(calc_p_th2)*sin(sk_p_phi) + p3_exp_nudge*sin(calc_e_th2)*sin(sk_e_phi);
+			double nudge_Pmz = p4_exp_nudge*cos(calc_p_th2) + p3_exp_nudge*cos(calc_e_th2) - sk_kin_Ebeam;
+			hPmx_nudge->Fill(nudge_Pmx);
+			hPmy_nudge->Fill(nudge_Pmy);
+			hPmz_nudge->Fill(nudge_Pmz);
+			
+
 				// sudo nudge factors from crap analysis
 			double e_central3 = 17.8018 * M_PI/180. + 0.00067;	
 			double p_central3 = -48.82  * M_PI/180. - 0.000445557;
@@ -484,10 +503,13 @@ int main( int argc, char ** argv){
 			// So with these 'fixes' to central angles, we can look at
 			// the expected proton/electron momenta
 			
-			double p3_exp_nudge   = (E1_an_id_nudge*mP) / ( mP + E1_an_id_nudge*(1-cos(calc_e_th2))  );
-			double p4_exp_nudge   = pow( pow((E1_an_id_nudge + mP - p3_exp_nudge),2) - pow(mP,2) , 0.5);
-			hP3_nudge->Fill( p3_exp_nudge - sk_e_ext_mom );
-			hP4_nudge->Fill( p4_exp_nudge - sk_p_ext_mom );
+
+
+
+
+
+
+
 
 			// now with fixed angles, the point is we want to see how Emiss might change 
 			// and pmiss might change but I need to REANALYZE those files to get the 
@@ -685,6 +707,47 @@ int main( int argc, char ** argv){
 	save = "/adaqfs/home/a-onl/tritium_work/segarrae/report-H/delPp.png";
 	img->WriteImage(save);
 	
+	hPmx_nudge->SetStats(0);
+	hPmx_nudge->Draw();
+	hPmx_nudge->SetLineColor(kBlack);
+	hPmx_id->Draw("same");
+	zero = new TLine(0,-1,0,hPmx_nudge->GetMaximum()*1.05);
+	zero->SetLineStyle(9);
+	zero->Draw("same");
+	myCanv->Update();
+	img->FromPad( myCanv );
+	save = "/adaqfs/home/a-onl/tritium_work/segarrae/report-H/delPmx.png";
+	img->WriteImage(save);
+
+
+	hPmy_nudge->SetStats(0);
+	hPmy_nudge->Draw();
+	hPmy_nudge->SetLineColor(kBlack);
+	hPmy_id->Draw("same");
+	zero = new TLine(0,-1,0,hPmx_nudge->GetMaximum()*1.05);
+	zero->SetLineStyle(9);
+	zero->Draw("same");
+	myCanv->Update();
+	img->FromPad( myCanv );
+	save = "/adaqfs/home/a-onl/tritium_work/segarrae/report-H/delPmy.png";
+	img->WriteImage(save);
+
+	hPmz_nudge->SetStats(0);
+	hPmz_nudge->Draw();
+	hPmz_id->Draw("same");
+	hPmz_nudge->SetLineColor(kBlack);
+	zero = new TLine(0,-1,0,hPmz_nudge->GetMaximum()*1.05);
+	zero->SetLineStyle(9);
+	zero->Draw("same");
+	myCanv->Update();
+	img->FromPad( myCanv );
+	save = "/adaqfs/home/a-onl/tritium_work/segarrae/report-H/delPmz.png";
+	img->WriteImage(save);
+
+
+
+
+
 
 
 	outFile->cd();
