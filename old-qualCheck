@@ -1,0 +1,105 @@
+#include <iostream>
+#include <cstdlib>
+#include <string>
+#include <cstdio>
+#include <fstream>
+
+#include "TFile.h"
+#include "TTree.h"
+#include "TCanvas.h"
+#include "TImage.h"
+#include "TVectorT.h"
+#include "TH2.h"
+#include "TStyle.h"
+#include "TLatex.h"
+#include "TCut.h"
+
+using namespace std;
+
+TString findDirectory( int fileNo );
+
+int main( int argc, char ** argv){
+	if ( argc < 2 ){
+		cerr << "Wrong number of arguments. Instead use\n"
+		     << "\t./qualCheck [runNo]\n";
+		return -1;
+	}
+	
+	// Search for the file path
+	int runNum = atoi(argv[1]);
+	TString path = findDirectory( runNum) ;
+	if (path == ""){
+		cerr << "\nFILE NOT FOUND...did you type in\n"
+		     << "run number incorrectly?\n";
+		return -1;
+	}
+
+	// With a found path file, now load it and plot some
+	// quality control parameters
+	TFile * inFile = new TFile(path);
+	TTree * inTree = (TTree *) inFile->Get("sk");
+	TVectorT <double> *kin = (TVectorT <double> *) inFile->Get("kinematics");
+	double Lmom = floorf( (*kin)[1] * 100 ) / 100;
+	double Rmom = floorf( (*kin)[3] * 100 ) / 100;
+	
+	TH2D * momCorr = new TH2D("momCorr","2D Momentum Correlation",40,Rmom-0.2,Rmom+0.2,30,Lmom-0.2,Lmom+0.1);
+	TH2D * vert = new TH2D("vert","Vertex Correlation",30,-0.15,0.15,30,-0.15,0.15);
+	TCut coll = "((R_ytar+1.5*R_yptar)/0.08)**2 + ((1.5*R_xptar)/0.08)**2 <= 1";
+
+	TCanvas * myCanv = new TCanvas;
+	myCanv->Divide(2,1);
+	
+	myCanv->cd(1);
+	inTree->Draw("L_z:R_z>>vert",coll,"COLZ");
+	vert->GetXaxis()->SetTitle("R_{z}");
+	vert->GetYaxis()->SetTitle("L_{z}");
+	vert->SetStats(kFALSE);
+	vert->GetYaxis()->SetTitleOffset(1.8);
+	myCanv->Update();
+	
+	myCanv->cd(2);
+	inTree->Draw("L_mom:R_mom>>momCorr",coll,"COLZ");
+	momCorr->GetXaxis()->SetTitle("RHRS Mommentum [GeV/c]");
+	momCorr->GetYaxis()->SetTitle("LHRS Mommentum [GeV/c]");
+	momCorr->SetStats(kFALSE);
+	momCorr->GetYaxis()->SetTitleOffset(1.8);
+	myCanv->Update();
+
+	TImage * img = TImage::Create();
+	img->FromPad( myCanv );
+	TString save;
+	save.Form("/adaqfs/home/a-onl/tritium_work/segarrae/checks/checks_%d.png",runNum);
+	img->WriteImage(save);
+	
+	delete myCanv;
+	delete img;
+	
+	return 0;
+}
+
+TString findDirectory( int fileNo ){
+	TString filename = "/chafs1/work1/tritium/coinc/skim";
+	TString end;
+	TString found = "";
+	TFile * f1 = NULL;
+	cout << "Searching for file...\n";	
+
+	// Directories to search:
+	// 1H_mid ; 2H_fast ; 3He_fast ; 3He_mid ; 3He_slow
+	// 3H_fast ; 3H_mid ; 3H_slow
+	const char* dirs[] = {"1H_mid","2H_fast","3He_fast","3He_mid","3He_slow","3H_fast","3H_mid","3H_slow"};
+	int numDirs = 8;
+
+	for( int i = 0 ; i < numDirs ; i++){
+		end.Form("/%s/skim_%d.root",dirs[i],fileNo);
+		f1 = new TFile(filename+end);
+		if ( !(f1->IsZombie()) ){
+			cout << "\tFile found!\n";
+			found = filename+end;
+			break;
+		}
+	}
+	f1->Close();
+	
+	return found;
+}

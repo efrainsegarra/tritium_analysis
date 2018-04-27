@@ -1,0 +1,5 @@
+How to update runlist.txt:
+cat infiles/* | cut -d'_' -f2 | cut -d'.' -f1 | sort -n -u > runlist.txt
+
+How to update runQual.sh:
+awk '$0="./qualCheck "$0' runlist.txt > runQual.sh

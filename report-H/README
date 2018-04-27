@@ -1,0 +1,11 @@
+Replayed same file -- 100102, 500000k events
+Looked at events with cuts: L.tr.n==1 && R.tr.n==1 && abs(L.tr.vz-R.tr.vz-0.005)<0.02 && DR.rrawt4>10
+
+Drew: exL.p + sqrt( pow(0.938272,2) + pow(exR.p,2) ) - 0.938274
+
+Looked at the files with and without this L.off_x / L.off_y / R.off_x R.off_y and didn't make the slightest
+difference even though exL takes into account extended target and rastered beam? 
+
+Drew: 0.938272 * (  1./(tan(EKLx.angle/2.)) * 1./(tan(EKRx.xangle-EKLx.angle)) - 1. )
+
+Still no difference but clearly wider distribution
